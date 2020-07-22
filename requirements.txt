@@ -1,0 +1,9 @@
+virtualenv
+flask
+flask-sqlalchemy
+flask_httpauth
+pandas
+tensorflow
+socket-io
+flask_socketio
+flask_cors
