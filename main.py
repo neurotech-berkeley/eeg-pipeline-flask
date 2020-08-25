@@ -1,33 +1,37 @@
 from flask import Flask
-from flask_httpauth import HTTPBasicAuth
-from flask_socketio import SocketIO, send
+from flask_socketio import SocketIO, send, emit
 from flask_cors import CORS
+import json
 
 app = Flask(__name__)
-auth = HTTPBasicAuth()
-
+app.config['SECRET_KEY'] = 'mysecret'
 CORS(app)
-socketio = SocketIO(app)
-@app.route('/')
-# @auth.verify_password
-# def verify_password(username, password):
-#     if username == 'otherserver' and password == '123':
-#         return True
-#     else:
-#         return False
+socketio = SocketIO(app=app, cors_allowed_origins='*')
 
-@socketio.on('message')
-def receiveMessage(msg):
-    print("Message: " + msg)
+@socketio.on('connect')
+def dataSent():
+    print("Connected!")
 
-def sendMessage(msg):
-    send(msg, broadcast=True)
+@socketio.on('test')
+def receiveTest(msg):
+    msg = json.loads(msg)
+    msg = msg["data"]
+    print("Received test message: " + msg)
+    emit('test-reply', msg.upper())
+
+@socketio.on('eeg-stream')
+def receiveStream(reading):
+    reading = json.loads(reading)
+    print("Received Stream Reading: " + reading)
+    if (max(reading['samples']) >= 95):
+        emit('blink-state', 'eyes_closed')
+    else:
+        emit('blink-state', 'eyes_open')
 
 if __name__ == "__main__":
-    socketio.run(app)
+    socketio.run(app, debug=True)
 
 # Import the rest of the app
-import upload_model
-import deploy_model
-import stream_connect
-
+# import upload_model
+# import deploy_model
+# import stream_connect
