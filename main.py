@@ -22,11 +22,11 @@ def receiveTest(msg):
 @socketio.on('eeg-stream')
 def receiveStream(reading):
     reading = json.loads(reading)
-    print("Received Stream Reading: " + reading)
+    print("Received Stream Reading: " + str(reading))
     if (max(reading['samples']) >= 95):
-        emit('blink-state', 'eyes_closed')
-    else:
         emit('blink-state', 'eyes_open')
+    else:
+        emit('blink-state', 'eyes_closed')
 
 if __name__ == "__main__":
     socketio.run(app, debug=True)
