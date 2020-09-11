@@ -1,16 +1,30 @@
 from flask import Flask
 from flask_socketio import SocketIO, send, emit
+from engineio.payload import Payload
 from flask_cors import CORS
+from flask_httpauth import HTTPBasicAuth
+from tensorflow import keras
+import pandas as pd
 import json
+import logging
 
 app = Flask(__name__)
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+auth = HTTPBasicAuth()
 app.config['SECRET_KEY'] = 'mysecret'
 CORS(app)
+Payload.max_decode_packets = 1000000
 socketio = SocketIO(app=app, cors_allowed_origins='*')
+model = None
 
 @socketio.on('connect')
 def dataSent():
     print("Connected!")
+    print("Loading Model")
+    global model
+    model = keras.models.load_model('./saved_models/test_user/pipelineModel_test')
+    print("Loaded")
 
 @socketio.on('test')
 def receiveTest(msg):
@@ -19,14 +33,31 @@ def receiveTest(msg):
     print("Received test message: " + msg)
     emit('test-reply', msg.upper())
 
+# @socketio.on('eeg-stream')
+# def receiveStream(reading):
+#     print(reading)
+#     emit('response', 'Ack')
+    # reading = json.loads(reading)
+    # print("Received Stream Reading: " + str(reading))
+    # if (max(reading['samples']) >= 95):
+    #     emit('blink-state', 'eyes_open')
+    # else:
+    #     emit('blink-state', 'eyes_closed')
+
 @socketio.on('eeg-stream')
-def receiveStream(reading):
-    reading = json.loads(reading)
-    print("Received Stream Reading: " + str(reading))
-    if (max(reading['samples']) >= 95):
-        emit('blink-state', 'eyes_open')
+def model_streamed(reading):
+    inputs = pd.DataFrame([reading[2:6]], dtype=float)
+    print(inputs)
+
+    outputs = model.predict(inputs)
+    print(outputs)
+
+@auth.verify_password
+def verify_password(username, password):
+    if username == 'otherserver' and password == '123':
+        return True
     else:
-        emit('blink-state', 'eyes_closed')
+        return False
 
 if __name__ == "__main__":
     socketio.run(app, debug=True)
