@@ -46,10 +46,7 @@ def receiveTest(msg):
 
 @socketio.on('eeg-stream')
 def model_streamed(reading):
-    reading = EEGReading(reading)
-    inputs = pd.DataFrame([reading[2:6]], dtype=float)
-    print(inputs)
-
+    inputs = pd.DataFrame([reading[1:5]], dtype=float)
     outputs = model.predict(inputs)
     print(outputs)
 
